@@ -33,10 +33,12 @@ Pages not retrieved are not needed to answer that question.
 **Summarizing** must cover every page, so it does not use top-k retrieval:
 1. Skip reference pages and empty/image-only pages.
 2. Compress each remaining page with extractive NLP (headings plus highest-scoring sentences,
-   about 700 characters per page). Very short readable pages are kept, with a text fallback when
+   about 1,400 characters per page). Very short readable pages are kept, with a text fallback when
    there are no complete sentences to extract. No model call.
 3. Send the digest to the model: one call up to about 40k characters, otherwise one call per batch
-   plus one merge call. Output is topics with short points and page numbers.
+   plus one merge call. Output is topics with informative points and page numbers. The UI's text
+   reduction percentage describes compression before the model call, not the percentage of PDF pages
+   omitted; page coverage and skipped reference/empty pages are shown separately.
 The result is cached per document. The page-coverage strip in the UI shows which pages were read.
 
 A broad question such as "what is this paper about?" is answered from the cached summary, because

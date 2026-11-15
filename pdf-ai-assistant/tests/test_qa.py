@@ -72,3 +72,20 @@ def test_document_summary_keeps_short_readable_pages(monkeypatch):
     assert result["pages_read"] == [1]
     assert result["pages_skipped"] == {"references": [], "empty": []}
     assert "[p.1] Short but readable." in calls[0][0]
+
+
+def test_document_summary_keeps_more_page_detail(monkeypatch):
+    detail = "We demonstrate the primary mechanism, " + "additional supporting detail " * 35
+    detail += " distinctive_conclusion_marker."
+    doc = SimpleNamespace(pages=[Page(1, detail)])
+
+    def fake_chat(prompt, **kwargs):
+        assert "distinctive_conclusion_marker" in prompt
+        assert "detailed, useful summary" in prompt
+        return '{"topics":[{"topic":"Findings","points":["The mechanism is explained."],"pages":[1]}]}'
+
+    monkeypatch.setattr(summarize.llm, "chat", fake_chat)
+
+    result = summarize.summarize_document(doc)
+
+    assert result["pages_read"] == [1]

@@ -77,7 +77,7 @@ function renderSummary(r) {
   const parts = ["Read " + r.pages_read.length + " of " + r.pages_total + " pages."];
   if (sk.references.length) parts.push(sk.references.length + " reference page(s) skipped.");
   if (sk.empty.length) parts.push(sk.empty.length + " empty or image-only page(s) skipped.");
-  parts.push(s.model_calls + " model call(s); text sent to the model cut by " + s.reduction_percent + "%.");
+  parts.push(s.model_calls + " model call(s). Text sent to the model was shortened by " + s.reduction_percent + "%; this is text compression, not the percentage of pages skipped.");
   $("stats").textContent = parts.join(" ");
   const box = $("topics");
   box.textContent = "";

@@ -18,14 +18,16 @@ SYSTEM = (
 )
 
 TOPICS_PROMPT = """Below is a compressed digest of a PDF. Every line starts with its page, like [p.7].
-List the main topics of the document as short bullet points for a reader who wants a quick understanding.
+Write a detailed, useful summary of the document. Explain its key ideas, methods, evidence, results,
+and conclusions so a reader can understand more than just the topic names.
 
 Return ONLY valid JSON, no extra text:
 {{"topics": [{{"topic": "short title", "points": ["one short sentence"], "pages": [1, 2]}}]}}
 
 Rules:
 - {n_topics} topics, in the order they appear in the document.
-- 2 to 4 points per topic; each point is one plain sentence under 25 words.
+- 3 to 4 informative points per topic; each point is one plain sentence up to 30 words.
+- Cover important explanations, evidence, results, and qualifications, not just headings.
 - Use only facts from the digest. Keep exact numbers, names, dataset and method names.
 - "pages" lists the pages the topic comes from.
 
@@ -39,8 +41,8 @@ Merge them into one final list: combine overlapping topics, keep the document or
 Return ONLY valid JSON in the same format:
 {{"topics": [{{"topic": "short title", "points": ["one short sentence"], "pages": [1, 2]}}]}}
 
-Rules: 8 to 12 topics, 2 to 4 points each, each point one plain sentence under 25 words.
-Keep exact numbers and names. Merge page lists of topics you combine.
+Rules: 8 to 12 topics, 3 to 4 informative points each, each point one plain sentence up to 30 words.
+Keep important explanations, results, qualifications, exact numbers, and names. Merge page lists of topics you combine.
 
 PARTIAL LISTS:
 {parts}
@@ -120,7 +122,7 @@ def summarize_document(doc, progress=lambda f, m=None: None) -> dict:
     partials, calls = [], 0
     for i, batch in enumerate(batches):
         progress(i / steps, f"Summarizing part {i + 1} of {len(batches)}")
-        n_topics = "6 to 10" if len(batches) == 1 else "4 to 6"
+        n_topics = "8 to 12" if len(batches) == 1 else "5 to 8"
         raw = llm.chat(TOPICS_PROMPT.format(n_topics=n_topics, digest="\n".join(batch)), system=SYSTEM)
         calls += 1
         partials.append(parse_topics(raw, total))

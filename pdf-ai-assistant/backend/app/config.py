@@ -43,7 +43,7 @@ class Settings:
     max_pages: int = int(_env("MAX_PAGES", "300"))
 
     # Summary budget
-    digest_chars_per_page: int = int(_env("DIGEST_CHARS_PER_PAGE", "700"))
+    digest_chars_per_page: int = int(_env("DIGEST_CHARS_PER_PAGE", "1400"))
     batch_chars: int = int(_env("BATCH_CHARS", "40000"))
 
     # Storage
