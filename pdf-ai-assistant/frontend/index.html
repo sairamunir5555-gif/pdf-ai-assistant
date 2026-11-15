@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF AI Assistant</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <h1>PDF AI</h1>
+    <p class="lede">Upload a PDF. Get its topics as short points, then ask questions.</p>
+    <div id="banner" class="banner" hidden></div>
+
+    <input type="file" id="file" accept="application/pdf" hidden>
+    <button id="pick" class="btn btn-orange" type="button">Upload PDF</button>
+
+    <div id="doc" class="doc" hidden>
+      <div id="doc-name" class="doc-name"></div>
+      <div id="doc-pages"></div>
+    </div>
+    <div id="progress" class="progress" hidden>
+      <div class="track"><div id="bar" class="bar"></div></div>
+      <span id="progress-msg"></span>
+    </div>
+
+    <label for="page">Page number (optional)</label>
+    <input type="number" id="page" min="1" placeholder="All pages" disabled>
+    <p class="note">The free model endpoint logs prompts. Do not upload confidential PDFs.</p>
+  </aside>
+
+  <main class="work">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-summary" aria-selected="true" aria-controls="panel-summary">Topic summary</button>
+      <button role="tab" id="tab-ask" aria-selected="false" aria-controls="panel-ask">Ask</button>
+    </div>
+
+    <section id="coverage" class="coverage" hidden aria-label="Pages read">
+      <div class="cov-head"><strong>Pages read</strong><span id="cov-text"></span></div>
+      <div id="cells" class="cells"></div>
+      <div class="legend">
+        <span><i class="cell read"></i>read by the model</span>
+        <span><i class="cell skip"></i>skipped (references or no readable text)</span>
+        <span><i class="cell"></i>not read for this result</span>
+      </div>
+    </section>
+
+    <section id="panel-summary" class="panel" role="tabpanel">
+      <div class="actions">
+        <button id="sum-btn" class="btn btn-black" type="button" disabled>Summarize</button>
+        <span id="sum-status" class="status" role="status"></span>
+      </div>
+      <div id="stats" class="stats"></div>
+      <div id="topics"></div>
+      <p id="sum-empty" class="empty">Upload a PDF, then press Summarize to see its topics as short points.</p>
+    </section>
+
+    <section id="panel-ask" class="panel panel-ask" role="tabpanel" hidden>
+      <div id="chat" class="chat"><p class="empty">Upload a PDF to start asking.</p></div>
+      <form id="form" class="ask-form">
+        <input type="text" id="q" placeholder="Ask a question about the PDF" autocomplete="off" disabled>
+        <button id="send" class="btn btn-orange" type="submit" disabled>Send</button>
+      </form>
+    </section>
+  </main>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
