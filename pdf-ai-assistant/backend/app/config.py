@@ -45,10 +45,11 @@ class Settings:
     # Summary budget
     digest_chars_per_page: int = int(_env("DIGEST_CHARS_PER_PAGE", "1400"))
     batch_chars: int = int(_env("BATCH_CHARS", "40000"))
+    full_text_summary_max_chars: int = int(_env("FULL_TEXT_SUMMARY_MAX_CHARS", "80000"))
 
     # Storage
     data_dir: Path = Path(_env("DATA_DIR", str(ROOT / "data")))
-    doc_ttl_hours: int = int(_env("DOC_TTL_HOURS", "72"))
+    doc_ttl_hours: int = int(_env("DOC_TTL_HOURS", "0"))
 
 
 settings = Settings()

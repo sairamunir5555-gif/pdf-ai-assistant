@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { docId: null, pages: 0, busy: false, hasSummary: false };
+const state = { docId: null, docName: "", pages: 0, busy: false, hasSummary: false, summary: null };
 
 async function api(path, opts = {}) {
   const res = await fetch("/api" + path, opts);
@@ -35,6 +35,8 @@ function setBusy(b) {
   $("send").disabled = !ready;
   $("page").disabled = !state.docId || b;
   $("pick").disabled = b;
+  $("download-pdf").disabled = !state.summary || b;
+  $("download-docx").disabled = !state.summary || b;
 }
 
 function setProgress(f, msg) {
@@ -71,13 +73,22 @@ function drawCoverage(read, skipped, label) {
 }
 
 function renderSummary(r) {
+  state.summary = r;
   $("sum-empty").hidden = true;
   const s = r.stats || {};
   const sk = { references: [], empty: [], ...(r.pages_skipped || {}) };
   const parts = ["Read " + r.pages_read.length + " of " + r.pages_total + " pages."];
   if (sk.references.length) parts.push(sk.references.length + " reference page(s) skipped.");
   if (sk.empty.length) parts.push(sk.empty.length + " empty or image-only page(s) skipped.");
-  parts.push(s.model_calls + " model call(s). Text sent to the model was shortened by " + s.reduction_percent + "%; this is text compression, not the percentage of pages skipped.");
+  let textInfo;
+  if (s.summary_source === "full_text") {
+    textInfo = "Full text from all readable pages was sent to the model.";
+  } else if (s.summary_source === "extractive_digest") {
+    textInfo = "The text was condensed by " + s.reduction_percent + "% before sending; all readable pages are included.";
+  } else {
+    textInfo = "This is an older cached summary. Click Summarize again to use the updated full-text mode for small PDFs.";
+  }
+  parts.push(s.model_calls + " model call(s). " + textInfo);
   $("stats").textContent = parts.join(" ");
   const box = $("topics");
   box.textContent = "";
@@ -106,6 +117,41 @@ function renderSummary(r) {
   drawCoverage(r.pages_read, sk, r.pages_read.length + " of " + r.pages_total + " pages went into this summary");
 }
 
+async function downloadSummary(format) {
+  const button = $("download-" + format);
+  button.disabled = true;
+  try {
+    const res = await fetch("/api/docs/" + encodeURIComponent(state.docId) +
+      "/summary/export?format=" + format, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(state.summary),
+      });
+    if (!res.ok) {
+      let data = null;
+      try { data = await res.json(); } catch (e) { /* non-JSON error body */ }
+      throw new Error((data && data.detail) || "Download failed (" + res.status + ")");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const filename = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+    link.download = filename
+      ? decodeURIComponent(filename[1])
+      : state.docName.replace(/\.pdf$/i, "") + "-summary." + format;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    $("sum-status").textContent = e.message;
+  } finally {
+    button.disabled = !state.summary || state.busy;
+  }
+}
+
 function showTab(name) {
   for (const t of ["summary", "ask"]) {
     $("tab-" + t).setAttribute("aria-selected", String(t === name));
@@ -122,8 +168,11 @@ $("file").addEventListener("change", async () => {
   const f = $("file").files[0];
   if (!f) return;
   state.docId = null;
+  state.docName = "";
   state.hasSummary = false;
+  state.summary = null;
   $("doc").hidden = true;
+  $("page-filter").hidden = true;
   $("coverage").hidden = true;
   $("topics").textContent = "";
   $("stats").textContent = "";
@@ -137,7 +186,9 @@ $("file").addEventListener("change", async () => {
     const up = await api("/upload", { method: "POST", body: fd });
     const meta = up.job_id ? await poll(up.job_id, (j) => setProgress(j.progress, j.message)) : up;
     state.docId = meta.doc_id;
+    state.docName = meta.name;
     state.pages = meta.pages;
+    $("page-filter").hidden = false;
     $("doc-name").textContent = meta.name;
     $("doc-pages").textContent = meta.pages + " pages";
     $("doc").hidden = false;
@@ -178,6 +229,8 @@ async function runSummary() {
   }
 }
 $("sum-btn").onclick = runSummary;
+$("download-pdf").onclick = () => downloadSummary("pdf");
+$("download-docx").onclick = () => downloadSummary("docx");
 
 /* chat */
 function addMsg(cls, text) {

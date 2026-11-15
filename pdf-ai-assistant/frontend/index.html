@@ -3,34 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PDF AI Assistant</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>PDF AI — Document workspace</title>
+  <link rel="stylesheet" href="/style.css?v=10">
 </head>
 <body>
 <div class="layout">
   <aside class="side">
-    <h1>PDF AI</h1>
-    <p class="lede">Upload a PDF. Get its topics as short points, then ask questions.</p>
+    <a class="brand" href="/" aria-label="PDF AI home">
+      <span class="brand-mark" aria-hidden="true">P</span>
+      <span class="brand-name">PDF <span>AI</span></span>
+    </a>
     <div id="banner" class="banner" hidden></div>
 
     <input type="file" id="file" accept="application/pdf" hidden>
-    <button id="pick" class="btn btn-orange" type="button">Upload PDF</button>
-
     <div id="doc" class="doc" hidden>
-      <div id="doc-name" class="doc-name"></div>
-      <div id="doc-pages"></div>
+      <span id="doc-name" class="doc-name"></span>
+      <span class="doc-separator" aria-hidden="true">/</span>
+      <span id="doc-pages" class="doc-pages"></span>
+    </div>
+
+    <div id="page-filter" class="page-filter" hidden>
+      <label for="page">Page</label>
+      <input type="number" id="page" min="1" placeholder="All" disabled>
     </div>
     <div id="progress" class="progress" hidden>
       <div class="track"><div id="bar" class="bar"></div></div>
       <span id="progress-msg"></span>
     </div>
-
-    <label for="page">Page number (optional)</label>
-    <input type="number" id="page" min="1" placeholder="All pages" disabled>
-    <p class="note">The free model endpoint logs prompts. Do not upload confidential PDFs.</p>
+    <button id="pick" class="btn btn-primary upload-btn" type="button">Upload PDF</button>
+    <p class="note">Free model logs prompts. Avoid confidential PDFs.</p>
   </aside>
 
   <main class="work">
+    <header class="workspace-header">
+      <span class="eyebrow">PDF WORKSPACE</span>
+      <h1>Understand your documents.</h1>
+      <p>Summaries and answers, grounded in your PDF.</p>
+    </header>
     <div class="tabs" role="tablist">
       <button role="tab" id="tab-summary" aria-selected="true" aria-controls="panel-summary">Topic summary</button>
       <button role="tab" id="tab-ask" aria-selected="false" aria-controls="panel-ask">Ask</button>
@@ -47,24 +56,41 @@
     </section>
 
     <section id="panel-summary" class="panel" role="tabpanel">
-      <div class="actions">
-        <button id="sum-btn" class="btn btn-black" type="button" disabled>Summarize</button>
-        <span id="sum-status" class="status" role="status"></span>
+      <div class="summary-toolbar">
+        <div class="actions">
+          <button id="sum-btn" class="btn btn-primary" type="button" disabled>Summarize</button>
+          <span id="sum-status" class="status" role="status"></span>
+        </div>
+        <div id="download-actions" class="download-actions" aria-label="Download summary">
+          <button id="download-pdf" class="btn btn-secondary" type="button" disabled>Download PDF</button>
+          <button id="download-docx" class="btn btn-secondary" type="button" disabled>Download Word</button>
+        </div>
       </div>
       <div id="stats" class="stats"></div>
       <div id="topics"></div>
-      <p id="sum-empty" class="empty">Upload a PDF, then press Summarize to see its topics as short points.</p>
+      <div id="sum-empty" class="empty-state">
+        <div class="empty-icon" aria-hidden="true"><span>PDF</span></div>
+        <span class="eyebrow">A CLEARER WAY TO READ</span>
+        <h2>Start with a document.</h2>
+        <p>Upload a PDF to get an organized summary, explore key topics, and ask questions in plain language.</p>
+        <div class="empty-benefits" aria-label="Workspace features">
+          <span>Topic summaries</span><span>Page references</span><span>Document Q&amp;A</span>
+        </div>
+      </div>
     </section>
 
     <section id="panel-ask" class="panel panel-ask" role="tabpanel" hidden>
+      <header class="chat-header">
+        <h2><strong><em>Ask a question in chat</em></strong></h2>
+      </header>
       <div id="chat" class="chat"><p class="empty">Upload a PDF to start asking.</p></div>
       <form id="form" class="ask-form">
         <input type="text" id="q" placeholder="Ask a question about the PDF" autocomplete="off" disabled>
-        <button id="send" class="btn btn-orange" type="submit" disabled>Send</button>
+        <button id="send" class="btn btn-primary" type="submit" disabled>Send</button>
       </form>
     </section>
   </main>
 </div>
-<script src="/app.js"></script>
+<script src="/app.js?v=6"></script>
 </body>
 </html>

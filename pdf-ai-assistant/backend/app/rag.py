@@ -5,6 +5,7 @@ import re
 import shutil
 import threading
 import time
+import tempfile
 from collections import OrderedDict
 from dataclasses import asdict
 from pathlib import Path
@@ -16,9 +17,12 @@ from .pdf import Page, extract_pages
 DOC_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 _model_lock = threading.Lock()
 _cache_lock = threading.Lock()
+_answer_cache_lock = threading.Lock()
+_original_pdf_lock = threading.Lock()
 _embedder = None
 _chroma = None
 _cache: "OrderedDict[str, Doc]" = OrderedDict()
+_ANSWER_CACHE_LIMIT = 200
 
 
 def doc_path(doc_id: str) -> Path:
@@ -109,6 +113,25 @@ def _write_json(path: Path, data) -> None:
     os.replace(tmp, path)
 
 
+def save_original_pdf(doc_id: str, data: bytes) -> None:
+    directory = doc_path(doc_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "original.pdf"
+    with _original_pdf_lock:
+        if not path.exists():
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    dir=directory, prefix=".original-", suffix=".tmp", delete=False
+                ) as tmp:
+                    tmp_path = Path(tmp.name)
+                    tmp.write(data)
+                os.replace(tmp_path, path)
+            finally:
+                if tmp_path is not None and tmp_path.exists():
+                    tmp_path.unlink()
+
+
 def ingest(doc_id: str, name: str, data: bytes, progress) -> dict:
     """Upload pipeline: extract -> chunk -> embed -> store. meta.json is written last (ready marker)."""
     d = doc_path(doc_id)
@@ -119,6 +142,7 @@ def ingest(doc_id: str, name: str, data: bytes, progress) -> dict:
     chunks = build_chunks(pages)
     if not chunks:
         raise ValueError("No readable text found in this PDF.")
+    save_original_pdf(doc_id, data)
     progress(0.30, "Building search index")
     _index_chunks(doc_id, chunks, lambda f: progress(0.30 + 0.68 * f, "Building search index"))
     _write_json(d / "pages.json", [asdict(p) for p in pages])
@@ -182,7 +206,35 @@ def retrieve(doc: Doc, question: str, k: int | None = None) -> list:
     return [doc.by_id[i] for i in fused if i in doc.by_id]
 
 
+def get_cached_answer(doc_id: str, key: str) -> dict | None:
+    path = doc_path(doc_id) / "answers.json"
+    with _answer_cache_lock:
+        if not path.exists():
+            return None
+        answers = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(answers, dict):
+            raise ValueError(f"Invalid answer cache for document {doc_id}.")
+        return answers.get(key)
+
+
+def cache_answer(doc_id: str, key: str, answer: dict) -> None:
+    path = doc_path(doc_id) / "answers.json"
+    with _answer_cache_lock:
+        answers = {}
+        if path.exists():
+            answers = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(answers, dict):
+                raise ValueError(f"Invalid answer cache for document {doc_id}.")
+        answers.pop(key, None)
+        answers[key] = answer
+        while len(answers) > _ANSWER_CACHE_LIMIT:
+            answers.pop(next(iter(answers)))
+        _write_json(path, answers)
+
+
 def purge_old_docs() -> None:
+    if settings.doc_ttl_hours <= 0:
+        return
     base = settings.data_dir / "docs"
     if not base.exists():
         return
